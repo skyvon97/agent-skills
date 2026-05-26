@@ -18,6 +18,7 @@ REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 Use `$REPO` for all `gh` commands below.
 
 Provide the PR number when invoking this skill.
+If the invocation includes `--dry-run`, review and report the intended verdict, but do not post reviews, merge, edit labels, or comment on GitHub. Do not include `--dry-run` in any `gh pr view`, `gh pr diff`, `gh pr review`, or `gh pr merge` command.
 
 ## Step 1: Load PR
 
@@ -87,6 +88,7 @@ gh pr merge <PR_NUMBER> --merge --delete-branch
 ```
 
 Use merge commit (not squash) to preserve full history for auditability.
+In dry-run mode, report that you would approve and merge instead of running this command.
 
 ## Step 7: Post-Merge Hygiene
 
@@ -139,6 +141,8 @@ gh pr review <PR_NUMBER> --approve --body "<review text>"
 # or
 gh pr review <PR_NUMBER> --request-changes --body "<review text>"
 ```
+
+In dry-run mode, print the review text and intended action instead of running `gh pr review`.
 
 ## Principles
 

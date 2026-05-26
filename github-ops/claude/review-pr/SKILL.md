@@ -18,11 +18,22 @@ REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 
 Use `$REPO` for all `gh` commands below.
 
+If `$ARGUMENTS` includes `--dry-run`, set `DRY_RUN=true`, remove that flag before passing arguments to `gh`, and do not post reviews, merge, edit labels, or comment on GitHub.
+
+```bash
+DRY_RUN=false
+PR_ARGS="$ARGUMENTS"
+if echo " $ARGUMENTS " | grep -q " --dry-run "; then
+  DRY_RUN=true
+  PR_ARGS=$(echo "$ARGUMENTS" | sed 's/[[:space:]]*--dry-run//g')
+fi
+```
+
 ## Step 1: Load PR
 
 ```bash
-gh pr view $ARGUMENTS --json number,title,body,author,files,commits,labels,baseRefName,headRefName
-gh pr diff $ARGUMENTS
+gh pr view $PR_ARGS --json number,title,body,author,files,commits,labels,baseRefName,headRefName
+gh pr diff $PR_ARGS
 ```
 
 Read the PR description, linked issues, labels, existing comments, and the full diff.
@@ -82,10 +93,11 @@ If the build fails, this is BLOCKING regardless of code quality.
 ## Step 6: If Approved — Merge
 
 ```bash
-gh pr merge $ARGUMENTS --merge --delete-branch
+gh pr merge $PR_ARGS --merge --delete-branch
 ```
 
 Use merge commit (not squash) to preserve full history for auditability.
+In dry-run mode, report that you would approve and merge instead of running this command.
 
 ## Step 7: Post-Merge Hygiene
 
@@ -102,7 +114,7 @@ gh issue edit <NUMBER> --repo "$REPO" --add-label audit-resolved --remove-label 
 
 **Post merge summary as PR comment:**
 ```bash
-gh pr comment $ARGUMENTS --body "## Merge Summary
+gh pr comment $PR_ARGS --body "## Merge Summary
 **Date:** $(date +%Y-%m-%d)
 **Issues resolved:** #XX, #YY
 **Build:** Passing
@@ -134,10 +146,12 @@ When posting your review (whether approving or requesting changes):
 
 Post the review:
 ```bash
-gh pr review $ARGUMENTS --approve --body "<review text>"
+gh pr review $PR_ARGS --approve --body "<review text>"
 # or
-gh pr review $ARGUMENTS --request-changes --body "<review text>"
+gh pr review $PR_ARGS --request-changes --body "<review text>"
 ```
+
+In dry-run mode, print the review text and intended action instead of running `gh pr review`.
 
 ## Principles
 
