@@ -135,7 +135,7 @@ gh pr merge <PR_NUMBER> --repo "$REPO" --merge --delete-branch --match-head-comm
 
 Use merge commit (not squash) to preserve full history for auditability.
 If the repository requires a merge queue, omit the merge strategy and let `gh pr merge` queue the PR.
-If `PR_AUTHOR` equals `CURRENT_USER`, do not attempt an approval review. GitHub rejects self-approval with `GraphQL: Review cannot approve your own pull request`; treat that as an expected platform rule, skip the approval command, and do not announce it as a noteworthy event. Record the approved review body as a normal PR comment, then continue directly to merge after required checks. Do not block just because formal approval is unavailable. Only report a blocker if `gh pr merge` itself fails because repository branch protection requires approval from a different GitHub account.
+When `PR_AUTHOR` equals `CURRENT_USER`, publish the approved review body as a normal PR comment instead of an approval review, then continue directly to merge after required checks. Only stop if `gh pr merge` fails.
 
 If requesting changes:
 
