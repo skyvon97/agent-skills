@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Full-cycle GitHub issue audit — triage all open audit issues, resolve actionable ones, and produce a triage report. Combines reconnaissance, classification, resolution, and reporting. Do not invoke implicitly. Do NOT use for reviewing existing PRs or fixing a single known issue."
+description: "GitHub, docs: triage, review, proof."
 ---
 
 # Audit — Full-Cycle Issue Triage & Resolution

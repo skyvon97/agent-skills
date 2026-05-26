@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Full-cycle GitHub issue audit — triage all open audit issues, resolve actionable ones, and produce a triage report. Combines reconnaissance, classification, resolution, and reporting. Do NOT use for reviewing existing PRs or fixing a single known issue."
+description: "GitHub, docs: triage, review, proof."
 argument-hint: "[--triage-only] [--risk-scan] [--repo <owner/repo>]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Bash, ListDirectory, Write, Edit

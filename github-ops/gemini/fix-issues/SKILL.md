@@ -1,6 +1,6 @@
 ---
 name: fix-issues
-description: "Resolve triaged GitHub audit issues tagged ready-to-fix. Implements fixes, creates atomic commits, and submits a PR following project standards. Do NOT use for triaging, auditing, or reviewing PRs."
+description: "GitHub, docs: triage, review, proof."
 argument-hint: "[issue-numbers or focus area]"
 disable-model-invocation: true
 ---

@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: "Review an open PR, verify the fix, merge if approved, and handle all post-merge hygiene (labels, comments, branch cleanup). Do not invoke implicitly. Do NOT use for triaging issues, writing fixes, or auditing."
+description: "GitHub, docs: triage, review, proof."
 ---
 
 # Review + Merge — PR Review Pipeline

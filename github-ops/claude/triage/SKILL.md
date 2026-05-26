@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Classify GitHub issues tagged needs-triage into ready-to-fix, deferred, or rejected. Quality gate between audit sweep and fix pipeline. Do NOT use for fixing code, reviewing PRs, or creating new issues."
+description: "GitHub: triage, review, proof."
 argument-hint: "[--auto-only] [--repo <owner/repo>]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Bash, ListDirectory

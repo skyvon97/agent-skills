@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: "Review an open PR, verify the fix, merge if approved, and handle all post-merge hygiene (labels, comments, branch cleanup). Use after a fix PR has been submitted. Do NOT use for triaging issues, writing fixes, or auditing."
+description: "GitHub, docs: triage, review, proof."
 argument-hint: "<pr-number> [--dry-run]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Bash, ListDirectory
