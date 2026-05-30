@@ -14,6 +14,8 @@ You are the review and merge authority for this PR. Review the fix, make the mer
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+AGENT_REVIEW_WORKFLOW=agent-pr-review.yml
 ```
 
 Use `$REPO` for all `gh` commands below.
@@ -32,13 +34,19 @@ fi
 ## Step 1: Load PR
 
 ```bash
-gh pr view $PR_ARGS --json number,title,body,author,files,commits,labels,baseRefName,headRefName
-gh pr diff $PR_ARGS
+gh pr view $PR_ARGS --repo "$REPO" --json number,title,body,author,files,commits,labels,baseRefName,headRefName
+gh pr diff $PR_ARGS --repo "$REPO"
 ```
 
 Read the PR description, linked issues, labels, existing comments, and the full diff.
 If you are not the first reviewer, treat prior review comments as required context.
-If the same human account authors and reviews PRs, follow `../../docs/agent-identity-separation.md`.
+Reviews are posted through the `Agent PR Review` GitHub Actions workflow so the review comes from `github-actions[bot]`, not the human operator's `gh` identity. Verify the workflow exists before posting a review:
+
+```bash
+gh workflow view "$AGENT_REVIEW_WORKFLOW" --repo "$REPO"
+```
+
+If the workflow is missing, stop and install `.github/workflows/agent-pr-review.yml` from this repository before reviewing. Do not fall back to `gh pr review` from the human operator account for approvals or requested changes.
 
 ## Step 2: Structural Check
 
@@ -90,22 +98,80 @@ If the build fails, this is BLOCKING regardless of code quality.
 **REQUEST CHANGES** — Any BLOCKING finding. Post your review and stop.
 **REJECT** — Fix introduces regression, contains unrelated changes, or can't be reviewed.
 
+Use a review body file:
+
+```bash
+REVIEW_BODY=$(mktemp)
+$EDITOR "$REVIEW_BODY"
+```
+
 ## Step 6: If Approved — Merge
 
 ```bash
-PR_AUTHOR=$(gh pr view $PR_ARGS --json author -q .author.login)
-CURRENT_USER=$(gh api user -q .login)
-if [ "$PR_AUTHOR" != "$CURRENT_USER" ]; then
-  gh pr review $PR_ARGS --approve --body "<review text>"
-else
-  gh pr comment $PR_ARGS --body "<review text>"
+PR_NUMBER=$(gh pr view $PR_ARGS --repo "$REPO" --json number -q .number)
+HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid -q .headRefOid)
+REQUEST_ID="agent-review-$(date +%s)-$$"
+printf '\n\n<!-- agent-review-request: %s -->\n' "$REQUEST_ID" >> "$REVIEW_BODY"
+REVIEW_BODY_B64=$(base64 < "$REVIEW_BODY" | tr -d '\n')
+
+gh workflow run "$AGENT_REVIEW_WORKFLOW" --repo "$REPO" --ref "$DEFAULT_BRANCH" \
+  --raw-field pr_number="$PR_NUMBER" \
+  --raw-field verdict="APPROVE" \
+  --raw-field body_b64="$REVIEW_BODY_B64" \
+  --raw-field head_sha="$HEAD_SHA" \
+  --raw-field agent_name="Claude review-pr"
+
+POSTED_STATE=""
+for _ in $(seq 1 24); do
+  POSTED_STATE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json reviews -q ".reviews[] | select(.body | contains(\"$REQUEST_ID\")) | .state" | tail -n 1)
+  if [ "$POSTED_STATE" = "APPROVED" ]; then
+    break
+  fi
+  sleep 5
+done
+if [ "$POSTED_STATE" != "APPROVED" ]; then
+  gh run list --repo "$REPO" --workflow "$AGENT_REVIEW_WORKFLOW" --limit 5
+  echo "Timed out waiting for agent approval review to post." >&2
+  exit 1
 fi
-gh pr merge $PR_ARGS --merge --delete-branch
+
+gh pr merge "$PR_NUMBER" --repo "$REPO" --merge --delete-branch --match-head-commit "$HEAD_SHA"
 ```
 
 Use merge commit (not squash) to preserve full history for auditability.
 In dry-run mode, report that you would approve and merge instead of running this command.
-When `PR_AUTHOR` equals `CURRENT_USER`, publish the approved review body as a normal PR comment instead of an approval review, then continue directly to merge after required checks. Only stop if `gh pr merge` fails.
+Because the review is posted by GitHub Actions, do not switch to a normal PR comment when the PR author matches the human operator. Only stop if the workflow review fails to post or `gh pr merge` fails.
+
+If requesting changes:
+
+```bash
+PR_NUMBER=$(gh pr view $PR_ARGS --repo "$REPO" --json number -q .number)
+HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid -q .headRefOid)
+REQUEST_ID="agent-review-$(date +%s)-$$"
+printf '\n\n<!-- agent-review-request: %s -->\n' "$REQUEST_ID" >> "$REVIEW_BODY"
+REVIEW_BODY_B64=$(base64 < "$REVIEW_BODY" | tr -d '\n')
+
+gh workflow run "$AGENT_REVIEW_WORKFLOW" --repo "$REPO" --ref "$DEFAULT_BRANCH" \
+  --raw-field pr_number="$PR_NUMBER" \
+  --raw-field verdict="REQUEST_CHANGES" \
+  --raw-field body_b64="$REVIEW_BODY_B64" \
+  --raw-field head_sha="$HEAD_SHA" \
+  --raw-field agent_name="Claude review-pr"
+
+POSTED_STATE=""
+for _ in $(seq 1 24); do
+  POSTED_STATE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json reviews -q ".reviews[] | select(.body | contains(\"$REQUEST_ID\")) | .state" | tail -n 1)
+  if [ "$POSTED_STATE" = "CHANGES_REQUESTED" ]; then
+    break
+  fi
+  sleep 5
+done
+if [ "$POSTED_STATE" != "CHANGES_REQUESTED" ]; then
+  gh run list --repo "$REPO" --workflow "$AGENT_REVIEW_WORKFLOW" --limit 5
+  echo "Timed out waiting for agent request-changes review to post." >&2
+  exit 1
+fi
+```
 
 ## Step 7: Post-Merge Hygiene
 
@@ -122,7 +188,7 @@ gh issue edit <NUMBER> --repo "$REPO" --add-label audit-resolved --remove-label 
 
 **Post merge summary as PR comment:**
 ```bash
-gh pr comment $PR_ARGS --body "## Merge Summary
+gh pr comment "$PR_NUMBER" --repo "$REPO" --body "## Merge Summary
 **Date:** $(date +%Y-%m-%d)
 **Issues resolved:** #XX, #YY
 **Build:** Passing
@@ -154,16 +220,16 @@ When posting your review (whether approving or requesting changes):
 
 Post the review:
 ```bash
-if [ "$PR_AUTHOR" != "$CURRENT_USER" ]; then
-  gh pr review $PR_ARGS --approve --body "<review text>"
-else
-  gh pr comment $PR_ARGS --body "<review text>"
-fi
-# or
-gh pr review $PR_ARGS --request-changes --body "<review text>"
+REVIEW_VERDICT=APPROVE  # or REQUEST_CHANGES
+gh workflow run "$AGENT_REVIEW_WORKFLOW" --repo "$REPO" --ref "$DEFAULT_BRANCH" \
+  --raw-field pr_number="$PR_NUMBER" \
+  --raw-field verdict="$REVIEW_VERDICT" \
+  --raw-field body_b64="$REVIEW_BODY_B64" \
+  --raw-field head_sha="$HEAD_SHA" \
+  --raw-field agent_name="Claude review-pr"
 ```
 
-In dry-run mode, print the review text and intended action instead of running `gh pr review`.
+In dry-run mode, print the review text and intended action instead of running `gh workflow run`.
 
 ## Principles
 

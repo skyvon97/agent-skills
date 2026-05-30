@@ -13,7 +13,7 @@ Four skills for GitHub issue lifecycle management:
 | **fix-issues** | Resolve `ready-to-fix` issues with atomic commits and PRs |
 | **review-pr** | Review pull requests, merge if approved, handle post-merge cleanup |
 
-Plus six shared reference documents that the skills depend on (label taxonomy, severity definitions, quality dimensions, risk potential, commit/PR format, operating principles).
+Plus six shared reference documents that the skills depend on (label taxonomy, severity definitions, quality dimensions, risk potential, commit/PR format, operating principles) and one GitHub Actions workflow used by `review-pr` to post reviews from `github-actions[bot]`.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ Follow these steps exactly:
 
 2. Create the required directories:
    ```
-   mkdir -p .claude/skills .claude/references .agents/skills .agents/references .gemini/skills .gemini/references
+   mkdir -p .claude/skills .claude/references .agents/skills .agents/references .gemini/skills .gemini/references .github/workflows
    ```
 
 3. Copy Claude Code skills (each is a directory containing SKILL.md):
@@ -76,16 +76,22 @@ Follow these steps exactly:
    cp /tmp/agent-skills-install/github-ops/references/*.md .gemini/references/
    ```
 
-7. Clean up:
+7. Copy the GitHub Actions review workflow:
+   ```
+   cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
+   ```
+
+8. Clean up:
    ```
    rm -rf /tmp/agent-skills-install
    ```
 
-8. Verify the installation by listing the installed files:
+9. Verify the installation by listing the installed files:
    ```
    echo "=== Claude Code ===" && ls -R .claude/skills/ .claude/references/
    echo "=== Codex ===" && ls -R .agents/skills/ .agents/references/
    echo "=== Gemini CLI ===" && ls -R .gemini/skills/ .gemini/references/
+   echo "=== GitHub Actions ===" && ls -R .github/workflows/agent-pr-review.yml
    ```
 
 The final directory structure should look like:
@@ -140,6 +146,10 @@ The final directory structure should look like:
     ├── operating-principles.md
     ├── risk-potential.md
     └── severity-definitions.md
+
+.github/
+└── workflows/
+    └── agent-pr-review.yml
 ```
 
 Do not modify the skill files. The relative reference paths (../../references/) are already correct for this directory structure.
@@ -155,16 +165,17 @@ Install the github-ops AI agent skills for Claude Code into this project from ht
 Run these commands:
 ```
 git clone --depth 1 https://github.com/skylordafk/agent-skills.git /tmp/agent-skills-install
-mkdir -p .claude/skills .claude/references
+mkdir -p .claude/skills .claude/references .github/workflows
 cp -r /tmp/agent-skills-install/github-ops/claude/audit .claude/skills/audit
 cp -r /tmp/agent-skills-install/github-ops/claude/triage .claude/skills/triage
 cp -r /tmp/agent-skills-install/github-ops/claude/fix-issues .claude/skills/fix-issues
 cp -r /tmp/agent-skills-install/github-ops/claude/review-pr .claude/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .claude/references/
+cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
 rm -rf /tmp/agent-skills-install
 ```
 
-Verify with: `ls -R .claude/skills/ .claude/references/`
+Verify with: `ls -R .claude/skills/ .claude/references/ .github/workflows/agent-pr-review.yml`
 
 Do not modify the skill files.
 ````
@@ -179,16 +190,17 @@ Install the github-ops AI agent skills for Codex into this project from https://
 Run these commands:
 ```
 git clone --depth 1 https://github.com/skylordafk/agent-skills.git /tmp/agent-skills-install
-mkdir -p .agents/skills .agents/references
+mkdir -p .agents/skills .agents/references .github/workflows
 cp -r /tmp/agent-skills-install/github-ops/codex/audit .agents/skills/audit
 cp -r /tmp/agent-skills-install/github-ops/codex/triage .agents/skills/triage
 cp -r /tmp/agent-skills-install/github-ops/codex/fix-issues .agents/skills/fix-issues
 cp -r /tmp/agent-skills-install/github-ops/codex/review-pr .agents/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .agents/references/
+cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
 rm -rf /tmp/agent-skills-install
 ```
 
-Verify with: `ls -R .agents/skills/ .agents/references/`
+Verify with: `ls -R .agents/skills/ .agents/references/ .github/workflows/agent-pr-review.yml`
 
 Do not modify the skill files.
 ````
@@ -203,16 +215,17 @@ Install the github-ops AI agent skills for Gemini CLI into this project from htt
 Run these commands:
 ```
 git clone --depth 1 https://github.com/skylordafk/agent-skills.git /tmp/agent-skills-install
-mkdir -p .gemini/skills .gemini/references
+mkdir -p .gemini/skills .gemini/references .github/workflows
 cp -r /tmp/agent-skills-install/github-ops/gemini/audit .gemini/skills/audit
 cp -r /tmp/agent-skills-install/github-ops/gemini/triage .gemini/skills/triage
 cp -r /tmp/agent-skills-install/github-ops/gemini/fix-issues .gemini/skills/fix-issues
 cp -r /tmp/agent-skills-install/github-ops/gemini/review-pr .gemini/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .gemini/references/
+cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
 rm -rf /tmp/agent-skills-install
 ```
 
-Verify with: `ls -R .gemini/skills/ .gemini/references/`
+Verify with: `ls -R .gemini/skills/ .gemini/references/ .github/workflows/agent-pr-review.yml`
 
 Do not modify the skill files.
 ````
@@ -291,6 +304,15 @@ Follow these steps exactly:
        fi
      done
    done
+   if [ -f .github/workflows/agent-pr-review.yml ]; then
+     if ! diff -q .github/workflows/agent-pr-review.yml /tmp/agent-skills-update/.github/workflows/agent-pr-review.yml > /dev/null 2>&1; then
+       echo "CHANGED: .github/workflows/agent-pr-review.yml"
+       diff --unified=3 .github/workflows/agent-pr-review.yml /tmp/agent-skills-update/.github/workflows/agent-pr-review.yml | head -40
+       echo "..."
+     fi
+   else
+     echo "NEW: .github/workflows/agent-pr-review.yml (not currently installed)"
+   fi
    ```
 
 3. Show me a summary of what changed and what's new before proceeding. Ask for confirmation.
@@ -314,6 +336,8 @@ Follow these steps exactly:
    cp -r /tmp/agent-skills-update/github-ops/gemini/fix-issues .gemini/skills/fix-issues
    cp -r /tmp/agent-skills-update/github-ops/gemini/review-pr .gemini/skills/review-pr
    cp /tmp/agent-skills-update/github-ops/references/*.md .gemini/references/
+   mkdir -p .github/workflows
+   cp /tmp/agent-skills-update/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
    echo ".claude/" >> .geminiignore
    echo ".agents/" >> .geminiignore
    ```
@@ -328,6 +352,7 @@ Follow these steps exactly:
    echo "=== Claude Code ===" && ls -R .claude/skills/ .claude/references/
    echo "=== Codex ===" && ls -R .agents/skills/ .agents/references/
    echo "=== Gemini CLI ===" && ls -R .gemini/skills/ .gemini/references/
+   echo "=== GitHub Actions ===" && ls -R .github/workflows/agent-pr-review.yml
    echo "=== .geminiignore ===" && cat .geminiignore
    ```
 
