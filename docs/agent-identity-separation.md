@@ -20,13 +20,27 @@ Agents inherit the human operator's `gh` auth. GitHub can't distinguish human fr
 
 **Why this works**: Author/PR-creator = human (contribution credit). Reviewer = `github-actions[bot]` (branch protection satisfied). Per-agent differentiation via review body and committer field.
 
-### What's needed
+### Implemented Entity
 
-1. One reusable workflow YAML (`agent-review.yml`) that accepts review body + verdict as inputs
-2. Skills updated to trigger `gh workflow run` instead of `gh pr review` directly
-3. Committer env vars (`GIT_COMMITTER_NAME`) set per agent in skill wrappers
+This repository includes `.github/workflows/agent-pr-review.yml`.
 
-### Upgrade path
+It accepts:
+
+- `pr_number` — target pull request number
+- `verdict` — `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`
+- `body_b64` — base64-encoded Markdown review body
+- `head_sha` — optional expected PR head SHA, used to fail if the PR moved
+- `agent_name` — human-readable agent identity included in the review body
+
+The `review-pr` skill triggers it with `gh workflow run`, waits for the review marker to appear on the PR, and only then merges an approved PR.
+
+### Remaining Setup
+
+1. Install `.github/workflows/agent-pr-review.yml` into each target repository.
+2. Ensure repository Actions permissions allow workflows to create pull request reviews (`pull-requests: write` is declared in the workflow).
+3. Optionally set committer env vars (`GIT_COMMITTER_NAME`) per agent in skill wrappers for commit attribution.
+
+### Upgrade Path
 
 If per-agent **visual identity** in GitHub UI matters later, register GitHub Apps per agent type. Each shows as `agent-name[bot]` with its own avatar. The workflow YAML becomes the app's handler — incremental migration, not a rewrite.
 

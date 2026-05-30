@@ -1,0 +1,107 @@
+name: Agent PR Review
+
+"on":
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number to review"
+        required: true
+        type: string
+      verdict:
+        description: "Review event to post"
+        required: true
+        type: choice
+        options:
+          - APPROVE
+          - REQUEST_CHANGES
+          - COMMENT
+      body_b64:
+        description: "Base64-encoded Markdown review body"
+        required: true
+        type: string
+      head_sha:
+        description: "Expected PR head SHA; fail if the PR moved"
+        required: false
+        type: string
+      agent_name:
+        description: "Human-readable agent identity to include in the review body"
+        required: false
+        default: "agent review-pr"
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  post-review:
+    name: Post PR review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate and post review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          VERDICT: ${{ inputs.verdict }}
+          BODY_B64: ${{ inputs.body_b64 }}
+          EXPECTED_HEAD_SHA: ${{ inputs.head_sha }}
+          AGENT_NAME: ${{ inputs.agent_name }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "pr_number must be numeric" >&2
+            exit 1
+          fi
+
+          case "$VERDICT" in
+            APPROVE|REQUEST_CHANGES|COMMENT) ;;
+            *)
+              echo "verdict must be APPROVE, REQUEST_CHANGES, or COMMENT" >&2
+              exit 1
+              ;;
+          esac
+
+          pr_json=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,isDraft,headRefOid)
+          state=$(jq -r '.state' <<<"$pr_json")
+          is_draft=$(jq -r '.isDraft' <<<"$pr_json")
+          current_head_sha=$(jq -r '.headRefOid' <<<"$pr_json")
+
+          if [ "$state" != "OPEN" ]; then
+            echo "PR #$PR_NUMBER is not open; current state is $state" >&2
+            exit 1
+          fi
+
+          if [ "$VERDICT" = "APPROVE" ] && [ "$is_draft" = "true" ]; then
+            echo "Refusing to approve draft PR #$PR_NUMBER" >&2
+            exit 1
+          fi
+
+          if [ -n "$EXPECTED_HEAD_SHA" ] && [ "$EXPECTED_HEAD_SHA" != "$current_head_sha" ]; then
+            echo "PR head moved from $EXPECTED_HEAD_SHA to $current_head_sha" >&2
+            exit 1
+          fi
+
+          review_body=$(mktemp)
+          if ! printf '%s' "$BODY_B64" | base64 --decode > "$review_body"; then
+            echo "body_b64 is not valid base64" >&2
+            exit 1
+          fi
+
+          payload=$(mktemp)
+          jq -n \
+            --arg event "$VERDICT" \
+            --arg body "> Posted by $AGENT_NAME through \`$WORKFLOW_NAME\` run $RUN_ID: $RUN_URL"$'\n\n'"$(cat "$review_body")" \
+            '{event: $event, body: $body}' > "$payload"
+
+          gh api \
+            --method POST \
+            "repos/$REPOSITORY/pulls/$PR_NUMBER/reviews" \
+            --input "$payload" \
+            --silent
+
+          echo "Posted $VERDICT review on PR #$PR_NUMBER"

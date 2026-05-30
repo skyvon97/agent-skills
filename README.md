@@ -14,6 +14,8 @@ Reusable AI agent skill files for Claude Code, Codex (OpenAI), and Gemini CLI. D
 │       └── agents/openai.yaml
 └── gemini/          # Gemini CLI skills (.gemini/skills/ format)
     └── <skill>/SKILL.md
+.github/workflows/
+└── agent-pr-review.yml  # GitHub Actions review identity for review-pr
 ```
 
 ## Categories
@@ -27,7 +29,7 @@ GitHub issue lifecycle skills — audit, triage, fix, and review.
 | `audit` | Full-cycle: triage all open audit issues, resolve actionable ones, produce report |
 | `triage` | Classify `needs-triage` issues into ready-to-fix, deferred, or rejected |
 | `fix-issues` | Resolve `ready-to-fix` issues with atomic commits and PRs |
-| `review-pr` | Review PRs, merge if approved, handle post-merge hygiene |
+| `review-pr` | Review PRs through a GitHub Actions review identity, merge if approved, handle post-merge hygiene |
 
 ## Installation
 
@@ -35,11 +37,13 @@ See the **[Installation Guide](docs/installation.md)** for full instructions, in
 
 **Quick start — paste this into your agent:**
 
-> Install the github-ops AI agent skills into this project from https://github.com/skylordafk/agent-skills.git — clone it to /tmp, copy Claude Code skills to .claude/skills/, Codex skills to .agents/skills/, Gemini CLI skills to .gemini/skills/, and shared references to all three reference directories. Then add .claude/ and .agents/ to .geminiignore to silence warnings. Finally clean up the clone and verify with ls -R.
+> Install the github-ops AI agent skills into this project from https://github.com/skylordafk/agent-skills.git — clone it to /tmp, copy Claude Code skills to .claude/skills/, Codex skills to .agents/skills/, Gemini CLI skills to .gemini/skills/, shared references to all three reference directories, and .github/workflows/agent-pr-review.yml to .github/workflows/. Then add .claude/ and .agents/ to .geminiignore to silence warnings. Finally clean up the clone and verify with ls -R.
 
 ### Repository auto-detection
 
 Skills use `gh repo view --json nameWithOwner` to detect the current repository at runtime. No per-project configuration needed — just install and go.
+
+`review-pr` also requires `.github/workflows/agent-pr-review.yml`. The skill triggers it with `gh workflow run` so approvals and change requests are posted by `github-actions[bot]` instead of the human operator's `gh` token.
 
 ## Adding new skills
 
