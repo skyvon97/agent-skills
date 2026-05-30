@@ -10,15 +10,17 @@ Agents inherit the human operator's `gh` auth. GitHub can't distinguish human fr
 - Contribution credit (green squares) stays with the **human operator**
 - Different agents (Claude Code, Codex) are **distinguishable**
 
-## Recommended Approach: GitHub Actions as Review Identity
+## Recommended Approach: GitHub Actions as Review Bridge
 
 **Commits**: Human = author (green squares). Agent name in committer field for `git blame` differentiation.
 
 **PRs**: Created under human identity as normal.
 
-**Reviews**: Agent triggers a `workflow_dispatch` GitHub Action. The action posts the review via `GITHUB_TOKEN`, appearing as `github-actions[bot]`. Review body includes a banner identifying the agent.
+**Reviews**: Agent triggers a `workflow_dispatch` GitHub Action. The action posts the review using a short-lived GitHub App installation token generated from `AGENT_REVIEW_APP_ID` and `AGENT_REVIEW_APP_PRIVATE_KEY`. A separate bot account PAT in `AGENT_REVIEW_TOKEN` is also supported as a fallback. Review body includes a banner identifying the agent and workflow run.
 
-**Why this works**: Author/PR-creator = human (contribution credit). Reviewer = `github-actions[bot]` (branch protection satisfied). Per-agent differentiation via review body and committer field.
+**Why this works**: Author/PR-creator = human (contribution credit). Reviewer = the separate token owner (branch protection satisfied). Per-agent differentiation via review body and committer field.
+
+The workflow's default `GITHUB_TOKEN` is not enough for approvals: GitHub rejects approval attempts from it. It is only useful for non-approving `COMMENT` smoke tests.
 
 ### Implemented Entity
 
@@ -37,8 +39,11 @@ The `review-pr` skill triggers it with `gh workflow run`, waits for the review m
 ### Remaining Setup
 
 1. Install `.github/workflows/agent-pr-review.yml` into each target repository.
-2. Ensure repository Actions permissions allow workflows to create pull request reviews (`pull-requests: write` is declared in the workflow).
-3. Optionally set committer env vars (`GIT_COMMITTER_NAME`) per agent in skill wrappers for commit attribution.
+2. Create and install a GitHub App review identity. See `docs/github-app-review-identity.md`.
+3. Store the app ID as a repository variable named `AGENT_REVIEW_APP_ID`.
+4. Store the app private key as a repository Actions secret named `AGENT_REVIEW_APP_PRIVATE_KEY`.
+5. Ensure repository Actions permissions allow workflows to create pull request reviews (`pull-requests: write` is declared in the workflow).
+6. Optionally set committer env vars (`GIT_COMMITTER_NAME`) per agent in skill wrappers for commit attribution.
 
 ### Upgrade Path
 
