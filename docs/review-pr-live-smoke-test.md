@@ -3,3 +3,5 @@
 This file is a trivial documentation change used to verify that the `review-pr` skill can post reviews through the Agent PR Review workflow.
 
 Fresh smoke target created after enabling the separate GitHub App review identity.
+
+Second smoke-test note: this line verifies the installed Claude skill dispatches the workflow after the user-level skill copy is refreshed.
