@@ -15,7 +15,7 @@ Reusable AI agent skill files for Claude Code, Codex (OpenAI), and Gemini CLI. D
 └── gemini/          # Gemini CLI skills (.gemini/skills/ format)
     └── <skill>/SKILL.md
 .github/workflows/
-└── agent-pr-review.yml  # GitHub Actions review identity for review-pr
+└── agent-pr-review.yml  # GitHub Actions bridge for review-pr posting
 ```
 
 ## Categories
@@ -29,7 +29,7 @@ GitHub issue lifecycle skills — audit, triage, fix, and review.
 | `audit` | Full-cycle: triage all open audit issues, resolve actionable ones, produce report |
 | `triage` | Classify `needs-triage` issues into ready-to-fix, deferred, or rejected |
 | `fix-issues` | Resolve `ready-to-fix` issues with atomic commits and PRs |
-| `review-pr` | Review PRs through a GitHub Actions review identity, merge if approved, handle post-merge hygiene |
+| `review-pr` | Review PRs through a separate review identity, merge if approved, handle post-merge hygiene |
 
 ## Installation
 
@@ -43,7 +43,7 @@ See the **[Installation Guide](docs/installation.md)** for full instructions, in
 
 Skills use `gh repo view --json nameWithOwner` to detect the current repository at runtime. No per-project configuration needed — just install and go.
 
-`review-pr` also requires `.github/workflows/agent-pr-review.yml`. The skill triggers it with `gh workflow run` so approvals and change requests are posted by `github-actions[bot]` instead of the human operator's `gh` token.
+`review-pr` also requires `.github/workflows/agent-pr-review.yml` and a separate review identity for approvals or requested changes. Prefer a GitHub App configured with `AGENT_REVIEW_APP_ID` and `AGENT_REVIEW_APP_PRIVATE_KEY`; see [GitHub App Review Identity](docs/github-app-review-identity.md). A separate bot account PAT in `AGENT_REVIEW_TOKEN` is also supported. GitHub does not allow the workflow's default `GITHUB_TOKEN` to approve PRs.
 
 ## Adding new skills
 

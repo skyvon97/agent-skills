@@ -29,13 +29,15 @@ gh pr diff <PR_NUMBER> --repo "$REPO"
 
 Read the PR description, linked issues, labels, existing comments, and the full diff.
 If you are not the first reviewer, treat prior review comments as required context.
-Reviews are posted through the `Agent PR Review` GitHub Actions workflow so the review comes from `github-actions[bot]`, not the human operator's `gh` identity. Verify the workflow exists before posting a review:
+Reviews are posted through the `Agent PR Review` GitHub Actions workflow using a separate review identity. Prefer the GitHub App setup with the `AGENT_REVIEW_APP_ID` repository variable and `AGENT_REVIEW_APP_PRIVATE_KEY` secret. A separate bot account PAT in `AGENT_REVIEW_TOKEN` is also supported. GitHub does not allow the workflow's default `GITHUB_TOKEN` to approve pull requests.
+
+Verify the workflow exists before posting a review:
 
 ```bash
 gh workflow view "$AGENT_REVIEW_WORKFLOW" --repo "$REPO"
 ```
 
-If the workflow is missing, stop and install `.github/workflows/agent-pr-review.yml` from this repository before reviewing. Do not fall back to `gh pr review` from the human operator account for approvals or requested changes.
+If the workflow is missing, stop and install `.github/workflows/agent-pr-review.yml` from this repository before reviewing. If neither GitHub App secrets nor `AGENT_REVIEW_TOKEN` are configured, stop and configure a separate review identity before approving or requesting changes. Do not fall back to `gh pr review` from the human operator account for approvals or requested changes.
 
 Before local verification, make sure the worktree is clean:
 

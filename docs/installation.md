@@ -13,12 +13,13 @@ Four skills for GitHub issue lifecycle management:
 | **fix-issues** | Resolve `ready-to-fix` issues with atomic commits and PRs |
 | **review-pr** | Review pull requests, merge if approved, handle post-merge cleanup |
 
-Plus six shared reference documents that the skills depend on (label taxonomy, severity definitions, quality dimensions, risk potential, commit/PR format, operating principles) and one GitHub Actions workflow used by `review-pr` to post reviews from `github-actions[bot]`.
+Plus six shared reference documents that the skills depend on (label taxonomy, severity definitions, quality dimensions, risk potential, commit/PR format, operating principles) and one GitHub Actions workflow used by `review-pr` to post reviews through a separate review identity.
 
 ## Prerequisites
 
 - **`gh` CLI** — installed and authenticated (`gh auth status`)
 - **`git`** — installed
+- **Separate review identity** — required for `review-pr` approvals or requested changes. Prefer a GitHub App configured with `AGENT_REVIEW_APP_ID` and `AGENT_REVIEW_APP_PRIVATE_KEY` (see `docs/github-app-review-identity.md`). A separate bot account PAT in `AGENT_REVIEW_TOKEN` is also supported. GitHub does not allow the workflow's default `GITHUB_TOKEN` to approve PRs.
 
 ## Agent-Executable Prompt
 
@@ -81,12 +82,26 @@ Follow these steps exactly:
    cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
    ```
 
-8. Clean up:
+8. Configure the review identity if it is not already present:
+   ```
+   REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+   if gh variable list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_ID' && gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_PRIVATE_KEY'; then
+     echo "GitHub App review identity configured."
+   elif gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_TOKEN'; then
+     echo "Bot PAT review identity configured."
+   else
+     echo "Configure a review identity. Preferred: AGENT_REVIEW_APP_ID variable + AGENT_REVIEW_APP_PRIVATE_KEY secret. See docs/github-app-review-identity.md."
+   fi
+   ```
+
+   The preferred setup is a GitHub App installed on the target repository with Pull requests read/write access.
+
+9. Clean up:
    ```
    rm -rf /tmp/agent-skills-install
    ```
 
-9. Verify the installation by listing the installed files:
+10. Verify the installation by listing the installed files:
    ```
    echo "=== Claude Code ===" && ls -R .claude/skills/ .claude/references/
    echo "=== Codex ===" && ls -R .agents/skills/ .agents/references/
@@ -172,6 +187,14 @@ cp -r /tmp/agent-skills-install/github-ops/claude/fix-issues .claude/skills/fix-
 cp -r /tmp/agent-skills-install/github-ops/claude/review-pr .claude/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .claude/references/
 cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+if gh variable list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_ID' && gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_PRIVATE_KEY'; then
+  echo "GitHub App review identity configured."
+elif gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_TOKEN'; then
+  echo "Bot PAT review identity configured."
+else
+  echo "Configure a review identity. Preferred: AGENT_REVIEW_APP_ID variable + AGENT_REVIEW_APP_PRIVATE_KEY secret. See docs/github-app-review-identity.md."
+fi
 rm -rf /tmp/agent-skills-install
 ```
 
@@ -197,6 +220,14 @@ cp -r /tmp/agent-skills-install/github-ops/codex/fix-issues .agents/skills/fix-i
 cp -r /tmp/agent-skills-install/github-ops/codex/review-pr .agents/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .agents/references/
 cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+if gh variable list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_ID' && gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_PRIVATE_KEY'; then
+  echo "GitHub App review identity configured."
+elif gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_TOKEN'; then
+  echo "Bot PAT review identity configured."
+else
+  echo "Configure a review identity. Preferred: AGENT_REVIEW_APP_ID variable + AGENT_REVIEW_APP_PRIVATE_KEY secret. See docs/github-app-review-identity.md."
+fi
 rm -rf /tmp/agent-skills-install
 ```
 
@@ -222,6 +253,14 @@ cp -r /tmp/agent-skills-install/github-ops/gemini/fix-issues .gemini/skills/fix-
 cp -r /tmp/agent-skills-install/github-ops/gemini/review-pr .gemini/skills/review-pr
 cp /tmp/agent-skills-install/github-ops/references/*.md .gemini/references/
 cp /tmp/agent-skills-install/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+if gh variable list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_ID' && gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_PRIVATE_KEY'; then
+  echo "GitHub App review identity configured."
+elif gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_TOKEN'; then
+  echo "Bot PAT review identity configured."
+else
+  echo "Configure a review identity. Preferred: AGENT_REVIEW_APP_ID variable + AGENT_REVIEW_APP_PRIVATE_KEY secret. See docs/github-app-review-identity.md."
+fi
 rm -rf /tmp/agent-skills-install
 ```
 
@@ -338,6 +377,14 @@ Follow these steps exactly:
    cp /tmp/agent-skills-update/github-ops/references/*.md .gemini/references/
    mkdir -p .github/workflows
    cp /tmp/agent-skills-update/.github/workflows/agent-pr-review.yml .github/workflows/agent-pr-review.yml
+   REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+   if gh variable list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_ID' && gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_APP_PRIVATE_KEY'; then
+     echo "GitHub App review identity configured."
+   elif gh secret list --repo "$REPO" | grep -q '^AGENT_REVIEW_TOKEN'; then
+     echo "Bot PAT review identity configured."
+   else
+     echo "Configure a review identity. Preferred: AGENT_REVIEW_APP_ID variable + AGENT_REVIEW_APP_PRIVATE_KEY secret. See docs/github-app-review-identity.md."
+   fi
    echo ".claude/" >> .geminiignore
    echo ".agents/" >> .geminiignore
    ```
