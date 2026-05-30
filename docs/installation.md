@@ -21,6 +21,8 @@ Plus six shared reference documents that the skills depend on (label taxonomy, s
 - **`git`** — installed
 - **Separate review identity** — required for `review-pr` approvals or requested changes. Prefer a GitHub App configured with `AGENT_REVIEW_APP_ID` and `AGENT_REVIEW_APP_PRIVATE_KEY` (see `docs/github-app-review-identity.md`). A separate bot account PAT in `AGENT_REVIEW_TOKEN` is also supported. GitHub does not allow the workflow's default `GITHUB_TOKEN` to approve PRs.
 
+For a new repository, install `.github/workflows/agent-pr-review.yml`, install your GitHub App on that repository, and store the App ID/private key as that repository's Actions variable and secret. One private App can be reused across repositories you control, but each repository must have the workflow and the App installed. See `docs/github-app-review-identity.md#using-this-in-another-repository`.
+
 ## Agent-Executable Prompt
 
 Copy the prompt below and paste it into your coding agent. It works in Claude Code, Codex, Gemini CLI, or any agent with shell access. The agent will clone the skill repository, copy the files into place, and clean up.
